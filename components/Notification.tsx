@@ -1,26 +1,27 @@
-import { useEffect } from 'react';
+import { useNotificationStore } from "@/store/useNotificationStore";
+import { useEffect } from "react";
 
-interface NotificationProps {
-  message: string;
-  type: 'success' | 'error';
-  visible: boolean;
-  onClose: () => void;
-}
+export function Notification() {
+  const { message, type } = useNotificationStore((state) => state.notification);
+  const closeNotification = useNotificationStore(
+    (state) => state.closeNotification
+  );
 
-export function Notification({ message, type, visible, onClose }: NotificationProps) {
   useEffect(() => {
-    if (visible) {
-      const timer = setTimeout(onClose, 3000);
+    if (message) {
+      const timer = setTimeout(closeNotification, 3000);
       return () => clearTimeout(timer);
     }
-  }, [visible, onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message]);
 
-  if (!visible) return null;
+  if (!message) return null;
 
   return (
     <div
-      className={`fixed bottom-4 right-4 p-4 rounded-md text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'
-        }`}
+      className={`fixed bottom-4 right-4 p-4 rounded-md text-white ${
+        type === "success" ? "bg-green-500" : "bg-red-500"
+      }`}
     >
       {message}
     </div>

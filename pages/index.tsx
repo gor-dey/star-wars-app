@@ -1,10 +1,9 @@
-import { useState } from 'react';
-import { gql } from '@apollo/client';
-import client from '../lib/apollo-client';
-import Link from 'next/link';
-import { useFavoriteStore } from '../lib/useFavoriteStore';
-import { Icons } from '../components/Icons';
-import { Notification } from '../components/Notification';
+import { useMemo, useState } from "react";
+import { gql } from "@apollo/client";
+import client from "@/apollo/apollo-client";
+import Link from "next/link";
+import { Icons, Notification } from "@/components";
+import { useFavoriteStore, useNotificationStore } from "@/store";
 
 interface Character {
   id: string;
@@ -26,34 +25,17 @@ const GET_CHARACTERS = gql`
 
 export default function Home({ characters }: { characters: Character[] }) {
   const [search, setSearch] = useState("");
-  const { favorites, addFavorite, removeFavorite } = useFavoriteStore();
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error'; visible: boolean }>({
-    message: '',
-    type: 'success',
-    visible: false,
-  });
-
-  const filteredCharacters = characters.filter(character =>
+  const filteredCharacters = characters.filter((character) =>
     character.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const isFavorite = (id: string) => favorites.some(fav => fav.id === id);
-
-  const handleFavoriteToggle = (character: Character) => {
-    if (isFavorite(character.id)) {
-      removeFavorite(character.id);
-      setNotification({ message: `${character.name} removed from favorites`, type: 'error', visible: true });
-    } else {
-      addFavorite(character);
-      setNotification({ message: `${character.name} added to favorites`, type: 'success', visible: true });
-    }
-  };
-
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className='flex justify-between'>
+      <div className="flex justify-between">
         <h1 className="text-3xl font-bold mb-6">Star Wars Characters</h1>
-        <Link href="/favorites" className="hover:underline">Favorites</Link>
+        <Link href="/favorites" className="hover:underline">
+          Favorites
+        </Link>
       </div>
 
       <input
@@ -66,29 +48,11 @@ export default function Home({ characters }: { characters: Character[] }) {
 
       <ul className="space-y-4">
         {filteredCharacters.map((character) => (
-          <li key={character.id} className="flex items-center justify-between">
-            <Link href={`/character/${character.id}`}>
-              <div className="hover:underline">
-                {character.name} - {character.birthYear}
-              </div>
-            </Link>
-
-            <button
-              onClick={() => handleFavoriteToggle(character)}
-              className={`ml-4 `}
-            >
-              {isFavorite(character.id) ? Icons.heart : Icons.emptyHeart}
-            </button>
-          </li>
+          <FavoriteListItem character={character} key={character.id} />
         ))}
       </ul>
 
-      <Notification
-        message={notification.message}
-        type={notification.type}
-        visible={notification.visible}
-        onClose={() => setNotification({ ...notification, visible: false })}
-      />
+      <Notification />
     </div>
   );
 }
@@ -104,3 +68,51 @@ export async function getServerSideProps() {
     },
   };
 }
+
+const FavoriteListItem = ({ character }: { character: Character }) => {
+  const favorites = useFavoriteStore((state) => state.favorites);
+  const addFavorite = useFavoriteStore((state) => state.addFavorite);
+  const removeFavorite = useFavoriteStore((state) => state.removeFavorite);
+  const setNotification = useNotificationStore(
+    (state) => state.setNotification
+  );
+
+  const favoriteIds = useMemo(
+    () => new Set(favorites.map((fav) => fav.id)),
+    [favorites]
+  );
+  const isFavorite = (id: string) => favoriteIds.has(id);
+
+  const handleFavoriteToggle = (character: Character) => {
+    if (isFavorite(character.id)) {
+      removeFavorite(character.id);
+      setNotification({
+        message: `${character.name} removed from favorites`,
+        type: "error",
+      });
+    } else {
+      addFavorite(character);
+      setNotification({
+        message: `${character.name} added to favorites`,
+        type: "success",
+      });
+    }
+  };
+
+  return (
+    <li key={character.id} className="flex items-center justify-between">
+      <Link href={`/character/${character.id}`}>
+        <div className="hover:underline">
+          {character.name} - {character.birthYear}
+        </div>
+      </Link>
+
+      <button
+        onClick={() => handleFavoriteToggle(character)}
+        className={`ml-4 `}
+      >
+        {isFavorite(character.id) ? Icons.heart : Icons.emptyHeart}
+      </button>
+    </li>
+  );
+};

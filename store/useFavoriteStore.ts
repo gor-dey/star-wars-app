@@ -1,6 +1,6 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-interface FavoriteCharacter {
+export interface FavoriteCharacter {
   id: string;
   name: string;
 }
